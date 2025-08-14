@@ -12,8 +12,8 @@ $user = new User($pdo);
 $is_logged_in = isLoggedIn();
 $user_id = getUserId();
 
-// Check search limit for guest users
-$search_limit_check = $user->checkSearchLimit();
+// Initialize search limit check variable
+$search_limit_check = ['allowed' => true, 'remaining' => 3];
 
 // Fungsi untuk membaca file CSV (hanya data desa/kelurahan)
 function bacaCSV($file) {
@@ -72,7 +72,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'autocomplete' && isset($_GET['key
 
 // Proses pencarian (untuk fallback)
 if (isset($_GET['keyword']) && !empty($_GET['keyword'])) {
-    // Check search limit for guest users
+    // Check search limit for guest users ONLY when actually searching
+    $search_limit_check = $user->checkSearchLimit();
     if (!$search_limit_check['allowed']) {
         $error_message = $search_limit_check['message'];
     } else {
@@ -90,7 +91,8 @@ if (isset($_GET['keyword']) && !empty($_GET['keyword'])) {
 
 // Proses pengambilan data cuaca
 if (isset($_GET['kode_wilayah']) && !empty($_GET['kode_wilayah'])) {
-    // Check search limit for guest users
+    // Check search limit for guest users ONLY when actually getting weather data
+    $search_limit_check = $user->checkSearchLimit();
     if (!$search_limit_check['allowed']) {
         $error_message = $search_limit_check['message'];
     } else {

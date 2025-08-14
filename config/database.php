@@ -82,7 +82,10 @@ class Database {
         );
         
         INSERT OR IGNORE INTO users (id, username, email, password, full_name) 
-        VALUES (1, 'admin', 'admin@weather.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator');
+        VALUES (1, 'admin', 'admin@weather.com', '$2y$12$4zH3kbzbo/nQPbZbgVTDnu.QsSPlSOO8tgPyXQE6hOPNeq09rPRt.', 'Administrator');
+        
+        -- Update admin password if user already exists
+        UPDATE users SET password = '$2y$12$4zH3kbzbo/nQPbZbgVTDnu.QsSPlSOO8tgPyXQE6hOPNeq09rPRt.' WHERE username = 'admin';
         
         INSERT OR IGNORE INTO user_settings (user_id, theme, temperature_unit) 
         VALUES (1, 'light', 'C');

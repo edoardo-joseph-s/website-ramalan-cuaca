@@ -264,15 +264,15 @@ class User {
             $current_count = $result ? $result['search_count'] : 0;
             $last_search = $result ? $result['last_search'] : null;
             
-            // Check if 24 hours have passed since last search
+            // Check if 3 minutes have passed since last search
             if ($last_search) {
                 $last_search_time = new DateTime($last_search);
                 $now = new DateTime();
                 $diff = $now->diff($last_search_time);
-                $hours_passed = ($diff->days * 24) + $diff->h;
+                $minutes_passed = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
                 
-                // Reset if 24 hours have passed
-                if ($hours_passed >= 24) {
+                // Reset if 3 minutes have passed
+                if ($minutes_passed >= 3) {
                     $query = "UPDATE " . $this->limits_table . " SET search_count = 0, last_search = CURRENT_TIMESTAMP WHERE session_id = :session_id";
                     $stmt = $this->conn->prepare($query);
                     $stmt->bindParam(':session_id', $session_id);
@@ -281,13 +281,13 @@ class User {
                 }
             }
             
-            // Calculate reset time (24 hours from last search)
+            // Calculate reset time (3 minutes from last search)
             $reset_time = null;
             $time_remaining = null;
             if ($last_search && $current_count >= 3) {
                 $last_search_time = new DateTime($last_search);
                 $reset_time = clone $last_search_time;
-                $reset_time->add(new DateInterval('P1D')); // Add 24 hours
+                $reset_time->add(new DateInterval('PT3M')); // Add 3 minutes
                 
                 $now = new DateTime();
                 if ($reset_time > $now) {
@@ -301,17 +301,18 @@ class User {
                 }
             }
             
+            // Check if limit reached BEFORE incrementing
             if ($current_count >= 3) {
                 return [
                     'allowed' => false, 
                     'remaining' => 0, 
-                    'message' => 'Batas pencarian tercapai. Limit akan reset dalam 24 jam atau silakan login untuk melanjutkan.',
+                    'message' => 'Batas pencarian tercapai. Limit akan reset dalam 3 menit atau silakan login untuk melanjutkan.',
                     'reset_time' => $reset_time ? $reset_time->format('Y-m-d H:i:s') : null,
                     'time_remaining' => $time_remaining
                 ];
             }
             
-            // Update or insert search count
+            // Allow search and increment count
             if ($result) {
                 $query = "UPDATE " . $this->limits_table . " SET search_count = search_count + 1, last_search = CURRENT_TIMESTAMP WHERE session_id = :session_id";
             } else {
@@ -322,7 +323,9 @@ class User {
             $stmt->bindParam(':session_id', $session_id);
             $stmt->execute();
             
-            return ['allowed' => true, 'remaining' => 3 - ($current_count + 1)];
+            // Return remaining searches after increment
+            $new_count = $current_count + 1;
+            return ['allowed' => true, 'remaining' => 3 - $new_count];
             
         } catch (Exception $e) {
             return ['allowed' => true, 'remaining' => 3];
@@ -348,26 +351,26 @@ class User {
             $current_count = $result ? $result['search_count'] : 0;
             $last_search = $result ? $result['last_search'] : null;
             
-            // Check if 24 hours have passed since last search
+            // Check if 3 minutes have passed since last search
             if ($last_search) {
                 $last_search_time = new DateTime($last_search);
                 $now = new DateTime();
                 $diff = $now->diff($last_search_time);
-                $hours_passed = ($diff->days * 24) + $diff->h;
+                $minutes_passed = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
                 
-                // Reset if 24 hours have passed
-                if ($hours_passed >= 24) {
+                // Reset if 3 minutes have passed
+                if ($minutes_passed >= 3) {
                     $current_count = 0;
                 }
             }
             
-            // Calculate reset time and remaining time
+            // Calculate reset time (3 minutes from last search)
             $reset_time = null;
             $time_remaining = null;
             if ($last_search && $current_count >= 3) {
                 $last_search_time = new DateTime($last_search);
                 $reset_time = clone $last_search_time;
-                $reset_time->add(new DateInterval('P1D')); // Add 24 hours
+                $reset_time->add(new DateInterval('PT3M')); // Add 3 minutes
                 
                 $now = new DateTime();
                 if ($reset_time > $now) {
