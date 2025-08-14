@@ -46,11 +46,29 @@
         
         <div class="location-info">
             <h2><i class="fas fa-map-marker-alt"></i> Informasi Lokasi</h2>
-            <p><strong>Kecamatan:</strong> <?php echo htmlspecialchars($data["lokasi"]["kecamatan"] ?? "N/A"); ?></p>
-            <p><strong>Kota/Kab:</strong> <?php echo htmlspecialchars($data["lokasi"]["kotkab"] ?? "N/A"); ?></p>
-            <p><strong>Provinsi:</strong> <?php echo htmlspecialchars($data["lokasi"]["provinsi"] ?? "N/A"); ?></p>
-            <p><strong>Koordinat:</strong> Lat: <?php echo htmlspecialchars($data["lokasi"]["lat"] ?? "N/A"); ?>, Lon: <?php echo htmlspecialchars($data["lokasi"]["lon"] ?? "N/A"); ?></p>
-            <p><strong>Timezone:</strong> <?php echo htmlspecialchars($data["lokasi"]["timezone"] ?? "N/A"); ?></p>
+            <div class="location-info-grid">
+                <div class="location-detail-item">
+                    <strong><i class="fas fa-building"></i> Kecamatan</strong>
+                    <p><?php echo htmlspecialchars($data["lokasi"]["kecamatan"] ?? "N/A"); ?></p>
+                </div>
+                <div class="location-detail-item">
+                    <strong><i class="fas fa-city"></i> Kota/Kab</strong>
+                    <p><?php echo htmlspecialchars($data["lokasi"]["kotkab"] ?? "N/A"); ?></p>
+                </div>
+                <div class="location-detail-item">
+                    <strong><i class="fas fa-map"></i> Provinsi</strong>
+                    <p><?php echo htmlspecialchars($data["lokasi"]["provinsi"] ?? "N/A"); ?></p>
+                </div>
+                <div class="location-detail-item">
+                     <strong><i class="fas fa-crosshairs"></i> Koordinat</strong>
+                     <p>Lat: <?php echo htmlspecialchars($data["lokasi"]["lat"] ?? "N/A"); ?></p>
+                     <p>Lon: <?php echo htmlspecialchars($data["lokasi"]["lon"] ?? "N/A"); ?></p>
+                 </div>
+                 <div class="location-detail-item">
+                     <strong><i class="fas fa-clock"></i> Timezone</strong>
+                     <p><?php echo htmlspecialchars($data["lokasi"]["timezone"] ?? "N/A"); ?></p>
+                 </div>
+             </div>
         </div>
 
         <!-- Forecast Section -->
