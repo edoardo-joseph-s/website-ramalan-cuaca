@@ -1,5 +1,8 @@
 // JavaScript untuk autocomplete dan interaktivitas
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dynamic background
+    initDynamicBackground();
+    
     const searchInput = document.getElementById('keyword');
     const autocompleteResults = document.getElementById('autocomplete-results');
     const hiddenKodeWilayah = document.getElementById('kode_wilayah');
@@ -7,6 +10,70 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedIndex = -1;
     let currentResults = [];
     let searchTimeout;
+
+    // Dynamic Background Functions
+    function initDynamicBackground() {
+        setTimeBasedBackground();
+        setWeatherBasedBackground();
+        
+        // Update background every 30 minutes
+        setInterval(() => {
+            setTimeBasedBackground();
+            setWeatherBasedBackground();
+        }, 30 * 60 * 1000);
+    }
+    
+    function setTimeBasedBackground() {
+        const now = new Date();
+        const hour = now.getHours();
+        const body = document.body;
+        
+        // Remove existing time classes
+        body.classList.remove('morning', 'day', 'evening', 'night');
+        
+        if (hour >= 5 && hour < 10) {
+            body.classList.add('morning');
+        } else if (hour >= 10 && hour < 17) {
+            body.classList.add('day');
+        } else if (hour >= 17 && hour < 20) {
+            body.classList.add('evening');
+        } else {
+            body.classList.add('night');
+        }
+    }
+    
+    function setWeatherBasedBackground() {
+        // Try to get weather from current page data or make API call
+        const currentWeatherDesc = document.querySelector('.current-desc');
+        if (currentWeatherDesc) {
+            const weatherText = currentWeatherDesc.textContent.toLowerCase();
+            applyWeatherClass(weatherText);
+        } else {
+            // Fallback: try to detect location and get weather
+            const locationElement = document.querySelector('.current-weather h2');
+            if (locationElement) {
+                // For demo purposes, apply a default weather class
+                applyWeatherClass('clear');
+            }
+        }
+    }
+    
+    function applyWeatherClass(weatherDesc) {
+        const body = document.body;
+        
+        // Remove existing weather classes
+        body.classList.remove('rainy', 'cloudy', 'sunny', 'clear');
+        
+        if (weatherDesc.includes('hujan') || weatherDesc.includes('rain')) {
+            body.classList.add('rainy');
+        } else if (weatherDesc.includes('berawan') || weatherDesc.includes('cloud') || weatherDesc.includes('mendung')) {
+            body.classList.add('cloudy');
+        } else if (weatherDesc.includes('cerah') || weatherDesc.includes('sunny') || weatherDesc.includes('panas')) {
+            body.classList.add('sunny');
+        } else {
+            body.classList.add('clear');
+        }
+    }
 
     // Autocomplete functionality
     if (searchInput && autocompleteResults) {
