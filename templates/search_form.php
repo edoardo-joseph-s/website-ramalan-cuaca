@@ -1,3 +1,6 @@
+<!-- Search Limit Info -->
+<div id="searchLimitInfo" class="search-limit-info" style="display: none;"></div>
+
 <!-- Form Pencarian Wilayah -->
 <section class="search-section">
     <h2><i class="fas fa-search"></i> Cari Wilayah</h2>

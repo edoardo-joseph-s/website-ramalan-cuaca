@@ -15,7 +15,19 @@
         
         <?php if ($current_weather): ?>
         <div class="current-weather">
-            <h2><?php echo htmlspecialchars($data["lokasi"]["desa"]); ?></h2>
+            <div class="current-header">
+                <div class="current-location">
+                    <h2><?php echo htmlspecialchars($data["lokasi"]["desa"]); ?></h2>
+                    <?php if (isLoggedIn()): ?>
+                        <button id="addToFavoriteBtn" class="favorite-btn" 
+                                data-lat="<?php echo htmlspecialchars($data['lokasi']['lat'] ?? ''); ?>" 
+                                data-lon="<?php echo htmlspecialchars($data['lokasi']['lon'] ?? ''); ?>" 
+                                data-name="<?php echo htmlspecialchars($data['lokasi']['desa'] ?? ''); ?>">
+                            <i class="fas fa-heart"></i> Tambah ke Favorit
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </div>
             <div class="current-temp"><?php echo htmlspecialchars($current_weather["t"] ?? "N/A"); ?>°C</div>
             <div class="current-desc"><?php echo htmlspecialchars($current_weather["weather_desc"] ?? "N/A"); ?></div>
             
