@@ -27,7 +27,6 @@ Aplikasi web untuk melihat prakiraan cuaca di seluruh wilayah Indonesia mengguna
 
 ### 📊 Riwayat Pencarian
 - **History Tracking**: Menyimpan riwayat pencarian user
-- **Analytics**: Data untuk analisis pola penggunaan
 
 ## 🛠️ Teknologi yang Digunakan
 
@@ -137,7 +136,7 @@ Aplikasi sudah dilengkapi dengan akun default untuk testing:
    - Ketik nama lokasi di search box
    - Pilih dari dropdown autocomplete
    - Lihat informasi cuaca
-   - Maksimal 3 pencarian per 3 menir
+   - Maksimal 3 pencarian per 3 menit
 
 2. **Dengan Login**:
    - Login terlebih dahulu
