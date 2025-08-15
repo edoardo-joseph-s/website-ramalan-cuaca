@@ -12,6 +12,7 @@
                 <div id="autocomplete-results" class="autocomplete-results"></div>
             </div>
             <input type="hidden" id="kode_wilayah" name="kode_wilayah" value="">
+            <input type="hidden" id="device_id" name="device_id" value="">
         </div>
         <button type="submit"><i class="fas fa-search"></i> Cari</button>
     </form>

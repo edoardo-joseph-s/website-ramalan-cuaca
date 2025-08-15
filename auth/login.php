@@ -180,6 +180,28 @@ if ($_POST) {
             transition: all 0.3s ease;
         }
         
+        .password-container {
+            position: relative;
+        }
+        
+        .password-container input {
+            padding-right: 45px;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.7);
+            transition: color 0.3s ease;
+        }
+        
+        .password-toggle:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+        
         .form-group input:focus {
             outline: none;
             border-color: rgba(255, 255, 255, 0.5);
@@ -303,7 +325,10 @@ if ($_POST) {
                     <label for="password">
                         <i class="fas fa-lock"></i> Password
                     </label>
-                    <input type="password" id="password" name="password" placeholder="Masukkan password" required>
+                    <div class="password-container">
+                        <input type="password" id="password" name="password" placeholder="Masukkan password" required>
+                        <i class="fas fa-eye password-toggle" onclick="togglePassword('password')"></i>
+                    </div>
                 </div>
                 
                 <button type="submit" name="login" class="auth-btn">
@@ -338,14 +363,20 @@ if ($_POST) {
                     <label for="reg_password">
                         <i class="fas fa-lock"></i> Password
                     </label>
-                    <input type="password" id="reg_password" name="reg_password" placeholder="Masukkan password (min. 6 karakter)" required>
+                    <div class="password-container">
+                        <input type="password" id="reg_password" name="reg_password" placeholder="Masukkan password (min. 6 karakter)" required>
+                        <i class="fas fa-eye password-toggle" onclick="togglePassword('reg_password')"></i>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="reg_confirm_password">
                         <i class="fas fa-lock"></i> Konfirmasi Password
                     </label>
-                    <input type="password" id="reg_confirm_password" name="reg_confirm_password" placeholder="Konfirmasi password" required>
+                    <div class="password-container">
+                        <input type="password" id="reg_confirm_password" name="reg_confirm_password" placeholder="Konfirmasi password" required>
+                        <i class="fas fa-eye password-toggle" onclick="togglePassword('reg_confirm_password')"></i>
+                    </div>
                 </div>
                 
                 <button type="submit" name="register" class="auth-btn">
@@ -370,6 +401,22 @@ if ($_POST) {
             // Add active class to selected tab and form
             event.target.classList.add('active');
             document.getElementById(tab + '-form').classList.add('active');
+        }
+        
+        // Password toggle functionality
+        function togglePassword(fieldId) {
+            const passwordField = document.getElementById(fieldId);
+            const toggleIcon = passwordField.nextElementSibling;
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
         }
         
         // Set background based on time

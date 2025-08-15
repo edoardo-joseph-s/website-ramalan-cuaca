@@ -10,7 +10,11 @@ try {
     $pdo = $database->getConnection();
     $user = new User($pdo);
     
-    $status = $user->getSearchLimitStatus();
+    // Get device_id from request if available
+    $device_id = $_GET['device_id'] ?? null;
+    
+    // Get search limit status
+    $status = $user->getSearchLimitStatus($device_id);
     
     echo json_encode([
         'success' => true,

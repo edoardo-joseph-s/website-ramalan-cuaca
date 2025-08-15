@@ -72,8 +72,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'autocomplete' && isset($_GET['key
 
 // Proses pencarian (untuk fallback)
 if (isset($_GET['keyword']) && !empty($_GET['keyword'])) {
+    // Update search_limits table to support device tracking
+    $user->updateSearchLimitsTable();
+    
+    // Get device_id from request if available
+    $device_id = $_GET['device_id'] ?? null;
+    
     // Check search limit for guest users ONLY when actually searching
-    $search_limit_check = $user->checkSearchLimit();
+    $search_limit_check = $user->checkSearchLimit($device_id);
     if (!$search_limit_check['allowed']) {
         $error_message = $search_limit_check['message'];
     } else {
@@ -91,8 +97,14 @@ if (isset($_GET['keyword']) && !empty($_GET['keyword'])) {
 
 // Proses pengambilan data cuaca
 if (isset($_GET['kode_wilayah']) && !empty($_GET['kode_wilayah'])) {
+    // Update search_limits table to support device tracking
+    $user->updateSearchLimitsTable();
+    
+    // Get device_id from request if available
+    $device_id = $_GET['device_id'] ?? null;
+    
     // Check search limit for guest users ONLY when actually getting weather data
-    $search_limit_check = $user->checkSearchLimit();
+    $search_limit_check = $user->checkSearchLimit($device_id);
     if (!$search_limit_check['allowed']) {
         $error_message = $search_limit_check['message'];
     } else {
@@ -217,6 +229,7 @@ include 'templates/weather_info.php';
 
 ?>
 
+<script src="js/device-tracker.js"></script>
 <script>
 // Search limit timer variables
 let limitTimer = null;
@@ -224,11 +237,25 @@ let limitCountdown = null;
 
 // Handle add to favorite button
 document.addEventListener('DOMContentLoaded', function() {
-    // Check search limit status on page load
-    checkSearchLimitStatus();
+    // Wait for device tracker to initialize
+    setTimeout(() => {
+        // Check search limit status on page load
+        checkSearchLimitStatus();
+    }, 1000);
     
     // Update search limit status every 30 seconds
     limitTimer = setInterval(checkSearchLimitStatus, 30000);
+    
+    // Handle search form submission with device tracking
+    const searchForm = document.querySelector('.search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            const deviceIdInput = document.getElementById('device_id');
+            if (deviceIdInput && deviceTracker) {
+                deviceIdInput.value = deviceTracker.getDeviceId();
+            }
+        });
+    }
     
     const addToFavoriteBtn = document.getElementById('addToFavoriteBtn');
     const removeFavoriteBtns = document.querySelectorAll('.btn-favorite-remove');
@@ -337,7 +364,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Check search limit status
 function checkSearchLimitStatus() {
-    fetch('api/search_limit_status.php')
+    const deviceId = deviceTracker ? deviceTracker.getDeviceId() : null;
+    const url = deviceId ? `api/search_limit_status.php?device_id=${encodeURIComponent(deviceId)}` : 'api/search_limit_status.php';
+    
+    fetch(url)
     .then(response => response.json())
     .then(data => {
         if (data.success) {

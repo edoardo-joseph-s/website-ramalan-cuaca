@@ -186,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function() {
             item.className = 'autocomplete-item';
             item.innerHTML = `
                 <span class="region-name">${escapeHtml(result.nama)}</span>
-                <span class="region-code">(${escapeHtml(result.kode)})</span>
             `;
             
             item.addEventListener('click', function() {

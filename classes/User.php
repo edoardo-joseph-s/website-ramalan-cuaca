@@ -8,6 +8,7 @@ class User {
     private $favorites_table = "favorite_locations";
     private $history_table = "search_history";
     private $limits_table = "search_limits";
+    private $devices_table = "devices";
     
     public function __construct($pdo = null) {
         if ($pdo) {
@@ -21,15 +22,24 @@ class User {
     // Register new user
     public function register($username, $email, $password, $full_name) {
         try {
-            // Check if username or email already exists
-            $query = "SELECT id FROM " . $this->table_name . " WHERE username = :username OR email = :email";
+            // Check if username already exists
+            $query = "SELECT id FROM " . $this->table_name . " WHERE username = :username";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':username', $username);
+            $stmt->execute();
+            
+            if ($stmt->fetch()) {
+                return ['success' => false, 'message' => 'Username sudah digunakan'];
+            }
+            
+            // Check if email already exists
+            $query = "SELECT id FROM " . $this->table_name . " WHERE email = :email";
+            $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':email', $email);
             $stmt->execute();
             
-            if ($stmt->rowCount() > 0) {
-                return ['success' => false, 'message' => 'Username atau email sudah digunakan'];
+            if ($stmt->fetch()) {
+                return ['success' => false, 'message' => 'Email sudah digunakan'];
             }
             
             // Hash password
@@ -116,8 +126,22 @@ class User {
             
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Direct password comparison (no hashing)
-            if ($user && isset($user['password']) && $user['password'] === $password) {
+            // Verify password with backward compatibility
+            $password_valid = false;
+            if ($user && isset($user['password'])) {
+                // Try new password_verify first (for hashed passwords)
+                if (password_verify($password, $user['password'])) {
+                    $password_valid = true;
+                } 
+                // Fallback for old plain text passwords (backward compatibility)
+                elseif ($user['password'] === $password) {
+                    $password_valid = true;
+                    // Upgrade password to hashed format
+                    $this->upgradePassword($user['id'], $password);
+                }
+            }
+            
+            if ($password_valid) {
                 // Start secure session
                 $this->startSecureSession();
                 
@@ -403,19 +427,26 @@ class User {
         }
     }
     
-    // Check and update search limit for guest users
-    public function checkSearchLimit() {
+    // Check and update search limit for guest users with device tracking
+    public function checkSearchLimit($device_id = null) {
         if (isLoggedIn()) {
             return ['allowed' => true, 'remaining' => 'unlimited'];
         }
         
         try {
-            $session_id = getSessionId();
+            // Use device_id if provided, otherwise fall back to session_id
+            if ($device_id) {
+                $identifier = $device_id;
+                $identifier_column = 'device_id';
+            } else {
+                $identifier = getSessionId();
+                $identifier_column = 'session_id';
+            }
             
             // Get current search count and last search time
-            $query = "SELECT search_count, last_search FROM " . $this->limits_table . " WHERE session_id = :session_id";
+            $query = "SELECT search_count, last_search FROM " . $this->limits_table . " WHERE " . $identifier_column . " = :identifier";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':session_id', $session_id);
+            $stmt->bindParam(':identifier', $identifier);
             $stmt->execute();
             
             $result = $stmt->fetch();
@@ -431,9 +462,9 @@ class User {
                 
                 // Reset if 3 minutes have passed
                 if ($minutes_passed >= 3) {
-                    $query = "UPDATE " . $this->limits_table . " SET search_count = 0, last_search = CURRENT_TIMESTAMP WHERE session_id = :session_id";
+                    $query = "UPDATE " . $this->limits_table . " SET search_count = 0, last_search = CURRENT_TIMESTAMP WHERE " . $identifier_column . " = :identifier";
                     $stmt = $this->conn->prepare($query);
-                    $stmt->bindParam(':session_id', $session_id);
+                    $stmt->bindParam(':identifier', $identifier);
                     $stmt->execute();
                     $current_count = 0;
                 }
@@ -472,13 +503,18 @@ class User {
             
             // Allow search and increment count
             if ($result) {
-                $query = "UPDATE " . $this->limits_table . " SET search_count = search_count + 1, last_search = CURRENT_TIMESTAMP WHERE session_id = :session_id";
+                $query = "UPDATE " . $this->limits_table . " SET search_count = search_count + 1, last_search = CURRENT_TIMESTAMP WHERE " . $identifier_column . " = :identifier";
             } else {
-                $query = "INSERT INTO " . $this->limits_table . " (session_id, search_count, last_search) VALUES (:session_id, 1, CURRENT_TIMESTAMP)";
+                // For new records, we need to handle both session_id and device_id columns
+                if ($device_id) {
+                    $query = "INSERT INTO " . $this->limits_table . " (device_id, search_count, last_search) VALUES (:identifier, 1, CURRENT_TIMESTAMP)";
+                } else {
+                    $query = "INSERT INTO " . $this->limits_table . " (session_id, search_count, last_search) VALUES (:identifier, 1, CURRENT_TIMESTAMP)";
+                }
             }
             
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':session_id', $session_id);
+            $stmt->bindParam(':identifier', $identifier);
             $stmt->execute();
             
             // Return remaining searches after increment
@@ -490,19 +526,129 @@ class User {
         }
     }
     
+    // Register device for user
+    public function registerDevice($user_id, $device_name, $device_type = 'unknown', $user_agent = null, $ip_address = null) {
+        try {
+            // Create devices table if not exists
+            $this->createDevicesTable();
+            
+            $device_id = uniqid('device_', true);
+            $user_agent = $user_agent ?: ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
+            $ip_address = $ip_address ?: ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+            
+            $query = "INSERT INTO " . $this->devices_table . " (device_id, user_id, device_name, device_type, user_agent, ip_address, last_used) VALUES (:device_id, :user_id, :device_name, :device_type, :user_agent, :ip_address, datetime('now'))";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':device_id', $device_id);
+            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':device_name', $device_name);
+            $stmt->bindParam(':device_type', $device_type);
+            $stmt->bindParam(':user_agent', $user_agent);
+            $stmt->bindParam(':ip_address', $ip_address);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'device_id' => $device_id, 'message' => 'Device berhasil didaftarkan'];
+            }
+            
+            return ['success' => false, 'message' => 'Gagal mendaftarkan device'];
+            
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+    
+    // Create devices table
+    private function createDevicesTable() {
+        $query = "CREATE TABLE IF NOT EXISTS " . $this->devices_table . " (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT UNIQUE NOT NULL,
+            user_id INTEGER NOT NULL,
+            device_name TEXT NOT NULL,
+            device_type TEXT DEFAULT 'unknown',
+            user_agent TEXT,
+            ip_address TEXT,
+            last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )";
+        $this->conn->exec($query);
+    }
+    
+    // Update search_limits table to support device tracking
+    public function updateSearchLimitsTable() {
+        try {
+            // Add device_id column if it doesn't exist
+            $query = "ALTER TABLE " . $this->limits_table . " ADD COLUMN device_id TEXT";
+            $this->conn->exec($query);
+        } catch (Exception $e) {
+            // Column might already exist, ignore error
+        }
+    }
+    
+    // Upgrade plain text password to hashed format
+    private function upgradePassword($user_id, $password) {
+        try {
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $query = "UPDATE " . $this->table_name . " SET password = :password WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':password', $hashed_password);
+            $stmt->bindParam(':id', $user_id);
+            $stmt->execute();
+            return true;
+        } catch (Exception $e) {
+            error_log("Password upgrade error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // Get user devices
+    public function getUserDevices($user_id) {
+        try {
+            $query = "SELECT * FROM " . $this->devices_table . " WHERE user_id = :user_id ORDER BY last_used DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $user_id);
+            $stmt->execute();
+            
+            return $stmt->fetchAll();
+            
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+    
+    // Update device last used
+    public function updateDeviceLastUsed($device_id) {
+        try {
+            $query = "UPDATE " . $this->devices_table . " SET last_used = datetime('now') WHERE device_id = :device_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':device_id', $device_id);
+            
+            return $stmt->execute();
+            
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     // Get search limit status without incrementing counter
-    public function getSearchLimitStatus() {
+    public function getSearchLimitStatus($device_id = null) {
         if (isLoggedIn()) {
             return ['allowed' => true, 'remaining' => 'unlimited'];
         }
         
         try {
-            $session_id = getSessionId();
+            // Use device_id if provided, otherwise fall back to session_id
+            if ($device_id) {
+                $identifier = $device_id;
+                $identifier_column = 'device_id';
+            } else {
+                $identifier = getSessionId();
+                $identifier_column = 'session_id';
+            }
             
             // Get current search count and last search time
-            $query = "SELECT search_count, last_search FROM " . $this->limits_table . " WHERE session_id = :session_id";
+            $query = "SELECT search_count, last_search FROM " . $this->limits_table . " WHERE " . $identifier_column . " = :identifier";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':session_id', $session_id);
+            $stmt->bindParam(':identifier', $identifier);
             $stmt->execute();
             
             $result = $stmt->fetch();
