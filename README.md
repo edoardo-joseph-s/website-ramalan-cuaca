@@ -288,27 +288,9 @@ CREATE TABLE search_history (
 );
 ```
 
-## 🤝 Kontribusi
-
-Kontribusi sangat diterima! Silakan:
-
-1. Fork repository ini
-2. Buat branch untuk fitur baru (`git checkout -b feature/AmazingFeature`)
-3. Commit perubahan (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buat Pull Request
-
 ## 📝 License
 
 Project ini menggunakan MIT License. Lihat file `LICENSE` untuk detail lengkap.
-
-## 📞 Support
-
-Jika mengalami masalah atau memiliki pertanyaan:
-
-- 🐛 **Bug Reports**: Buat issue di repository
-- 💡 **Feature Requests**: Diskusikan di issues
-- 📧 **Email**: [your-email@example.com]
 
 ## 🙏 Acknowledgments
 
