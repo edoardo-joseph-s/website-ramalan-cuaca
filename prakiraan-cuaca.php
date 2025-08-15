@@ -239,13 +239,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const lat = this.getAttribute('data-lat');
             const lon = this.getAttribute('data-lon');
             const name = this.getAttribute('data-name');
+            const kecamatan = this.getAttribute('data-kecamatan');
+            const kota = this.getAttribute('data-kota');
+            const provinsi = this.getAttribute('data-provinsi');
             
             fetch('ajax_handler.php', {
                  method: 'POST',
                  headers: {
                      'Content-Type': 'application/x-www-form-urlencoded',
                  },
-                 body: `action=add_favorite&latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&location_name=${encodeURIComponent(name)}`
+                 body: `action=add_favorite&latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&location_name=${encodeURIComponent(name)}&kecamatan=${encodeURIComponent(kecamatan)}&kota=${encodeURIComponent(kota)}&provinsi=${encodeURIComponent(provinsi)}`
              })
             .then(response => response.json())
             .then(data => {
@@ -328,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 document.body.removeChild(messageDiv);
             }, 300);
-        }, 3000);
+        }, 8000);
     }
 });
 

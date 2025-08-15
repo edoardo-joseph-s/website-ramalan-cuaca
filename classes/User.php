@@ -292,15 +292,15 @@ class User {
     public function addFavorite($user_id, $latitude, $longitude, $location_name, $kecamatan = '', $kota = '', $provinsi = '') {
         try {
             // Check if location already exists for this user
-            $check_query = "SELECT id FROM " . $this->favorites_table . " WHERE user_id = :user_id AND latitude = :latitude AND longitude = :longitude";
+            $check_query = "SELECT id FROM " . $this->favorites_table . " WHERE user_id = :user_id AND location_name = :location_name";
             $check_stmt = $this->conn->prepare($check_query);
             $check_stmt->bindParam(':user_id', $user_id);
-            $check_stmt->bindParam(':latitude', $latitude);
-            $check_stmt->bindParam(':longitude', $longitude);
+            $check_stmt->bindParam(':location_name', $location_name);
             $check_stmt->execute();
             
-            if ($check_stmt->rowCount() > 0) {
-                return false; // Already exists
+            // Use fetch() instead of rowCount() for SQLite compatibility
+            if ($check_stmt->fetch()) {
+                return 'exists'; // Already exists
             }
             
             $query = "INSERT INTO " . $this->favorites_table . " (user_id, location_name, latitude, longitude, kecamatan, kota, provinsi) VALUES (:user_id, :location_name, :latitude, :longitude, :kecamatan, :kota, :provinsi)";
@@ -313,9 +313,15 @@ class User {
             $stmt->bindParam(':kota', $kota);
             $stmt->bindParam(':provinsi', $provinsi);
             
-            return $stmt->execute();
+            if ($stmt->execute()) {
+                return true;
+            } else {
+                error_log('Failed to insert favorite: ' . print_r($stmt->errorInfo(), true));
+                return false;
+            }
             
         } catch (Exception $e) {
+            error_log('Exception in addFavorite: ' . $e->getMessage());
             return false;
         }
     }

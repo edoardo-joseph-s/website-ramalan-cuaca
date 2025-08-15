@@ -6,7 +6,9 @@ if (!isLoggedIn()) {
     redirectTo('auth/login.php');
 }
 
-$user = new User();
+$database = new Database();
+$pdo = $database->getConnection();
+$user = new User($pdo);
 $user_id = getUserId();
 $user_settings = $user->getSettings($user_id);
 $favorites = $user->getFavorites($user_id);
@@ -271,11 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         }
     </style>
 </head>
-<body class="morning">
-    <a href="auth/logout.php" class="logout-btn">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
-    
+<body class="morning">    
     <div class="dashboard-container">
         <div class="dashboard-header">
             <h1>

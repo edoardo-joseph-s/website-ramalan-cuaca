@@ -2,8 +2,7 @@
 require_once 'config/database.php';
 require_once 'classes/User.php';
 
-// Start session
-session_start();
+// Session is already started in database.php
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -26,6 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $latitude = $_POST['latitude'] ?? '';
             $longitude = $_POST['longitude'] ?? '';
             $location_name = $_POST['location_name'] ?? '';
+            $kecamatan = $_POST['kecamatan'] ?? '';
+            $kota = $_POST['kota'] ?? '';
+            $provinsi = $_POST['provinsi'] ?? '';
             
             if (empty($latitude) || empty($longitude) || empty($location_name)) {
                 echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
@@ -33,9 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             try {
-                $result = $user->addFavorite($user_id, $latitude, $longitude, $location_name);
-                if ($result) {
+                $result = $user->addFavorite($user_id, $latitude, $longitude, $location_name, $kecamatan, $kota, $provinsi);
+                if ($result === true) {
                     echo json_encode(['success' => true, 'message' => 'Lokasi berhasil ditambahkan ke favorit']);
+                } elseif ($result === 'exists') {
+                    echo json_encode(['success' => false, 'message' => 'Lokasi sudah ada dalam daftar favorit']);
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Lokasi sudah ada di favorit']);
                 }

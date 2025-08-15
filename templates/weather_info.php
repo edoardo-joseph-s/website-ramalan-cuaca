@@ -22,7 +22,10 @@
                         <button id="addToFavoriteBtn" class="favorite-btn" 
                                 data-lat="<?php echo htmlspecialchars($data['lokasi']['lat'] ?? ''); ?>" 
                                 data-lon="<?php echo htmlspecialchars($data['lokasi']['lon'] ?? ''); ?>" 
-                                data-name="<?php echo htmlspecialchars($data['lokasi']['desa'] ?? ''); ?>">
+                                data-name="<?php echo htmlspecialchars($data['lokasi']['desa'] ?? ''); ?>"
+                                data-kecamatan="<?php echo htmlspecialchars($data['lokasi']['kecamatan'] ?? ''); ?>"
+                                data-kota="<?php echo htmlspecialchars($data['lokasi']['kotkab'] ?? ''); ?>"
+                                data-provinsi="<?php echo htmlspecialchars($data['lokasi']['provinsi'] ?? ''); ?>">
                             <i class="fas fa-heart"></i> Tambah ke Favorit
                         </button>
                     <?php endif; ?>
