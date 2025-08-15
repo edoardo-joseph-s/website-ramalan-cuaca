@@ -10,7 +10,7 @@ error_reporting(E_ALL);
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
-    header('Location: ../dashboard.php');
+    header('Location: ../prakiraan-cuaca.php');
     exit();
 }
 
@@ -49,8 +49,8 @@ if ($_POST) {
                     // Small delay to show success message
                     sleep(1);
                     
-                    // Redirect to dashboard after successful login
-                    header('Location: ../dashboard.php');
+                    // Redirect to weather search after successful login
+                    header('Location: ../prakiraan-cuaca.php');
                     exit();
                 } else {
                     $error_message = $result['message'];
