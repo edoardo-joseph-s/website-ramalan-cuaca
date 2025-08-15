@@ -114,12 +114,12 @@ if (isset($_GET['kode_wilayah']) && !empty($_GET['kode_wilayah'])) {
                 if (isset($data['data']) && !empty($data['data'])) {
                     $location_data = $data['data'][0]['lokasi'];
                     $user->addSearchHistory(
-                        $location_data['desa'],
-                        $location_data['lat'],
-                        $location_data['lon'],
-                        $location_data['kecamatan'],
-                        $location_data['kota'],
-                        $location_data['provinsi'],
+                        $location_data['desa'] ?? '',
+                        $location_data['lat'] ?? 0,
+                        $location_data['lon'] ?? 0,
+                        $location_data['kecamatan'] ?? '',
+                        $location_data['kota'] ?? '',
+                        $location_data['provinsi'] ?? '',
                         $user_id
                     );
                 }

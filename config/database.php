@@ -20,7 +20,8 @@ class Database {
             $this->createTables();
             
         } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
+            // Log error instead of echoing to avoid interfering with JSON responses
+            error_log("Database connection error: " . $exception->getMessage());
         }
         
         return $this->conn;

@@ -59,31 +59,59 @@ class User {
         }
     }
     
-    // Login user
+    // Login user with improved security
     public function login($username, $password) {
         try {
-            $query = "SELECT id, username, email, password, full_name FROM " . $this->table_name . " WHERE username = :username OR email = :username";
+            // Check for rate limiting
+            if ($this->isRateLimited($username)) {
+                return ['success' => false, 'message' => 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'];
+            }
+            
+            // Validate input
+            if (empty(trim($username)) || empty($password)) {
+                return ['success' => false, 'message' => 'Username dan password harus diisi'];
+            }
+            
+            $query = "SELECT id, username, email, password, full_name, created_at FROM " . $this->table_name . " WHERE (username = :username OR email = :username) AND id > 0";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':username', $username);
+            $trimmed_username = trim($username);
+            $stmt->bindParam(':username', $trimmed_username);
             $stmt->execute();
             
             if ($stmt->rowCount() == 1) {
                 $user = $stmt->fetch();
                 
-                if (password_verify($password, $user['password'])) {
+                if ($user && isset($user['password']) && password_verify($password, $user['password'])) {
+                    // Regenerate session ID for security
+                    session_regenerate_id(true);
+                    
+                    // Set session variables
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['full_name'] = $user['full_name'];
                     $_SESSION['email'] = $user['email'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['last_activity'] = time();
+                    
+                    // Log successful login
+                    $this->logLoginAttempt($username, true, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+                    
+                    // Clear failed attempts
+                    $this->clearFailedAttempts($username);
                     
                     return ['success' => true, 'message' => 'Login berhasil', 'user' => $user];
                 }
             }
             
+            // Log failed login attempt
+            $this->logLoginAttempt($username, false, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+            $this->recordFailedAttempt($username);
+            
             return ['success' => false, 'message' => 'Username/email atau password salah'];
             
         } catch (Exception $e) {
-            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+            error_log("Login error: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'];
         }
     }
     
@@ -93,7 +121,81 @@ class User {
         return ['success' => true, 'message' => 'Logout berhasil'];
     }
     
-    // Get user settings
+    // Rate limiting methods
+    private function isRateLimited($username) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $key = md5($username . $ip);
+        
+        // Check if attempts table exists, create if not
+        $this->createLoginAttemptsTable();
+        
+        $query = "SELECT COUNT(*) as attempts FROM login_attempts WHERE identifier = ? AND attempt_time > datetime('now', '-15 minutes')";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$key]);
+        
+        $result = $stmt->fetch();
+        return $result['attempts'] >= 5; // Max 5 attempts in 15 minutes
+    }
+    
+    private function recordFailedAttempt($username) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $key = md5($username . $ip);
+        
+        $query = "INSERT INTO login_attempts (identifier, username, ip_address, attempt_time, success) VALUES (?, ?, ?, datetime('now'), 0)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$key, $username, $ip]);
+    }
+    
+    private function clearFailedAttempts($username) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $key = md5($username . $ip);
+        
+        $query = "DELETE FROM login_attempts WHERE identifier = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$key]);
+    }
+    
+    private function logLoginAttempt($username, $success, $ip) {
+        $query = "INSERT INTO login_attempts (identifier, username, ip_address, attempt_time, success) VALUES (?, ?, ?, datetime('now'), ?)";
+        $stmt = $this->conn->prepare($query);
+        $key = md5($username . $ip . time()); // Unique key for logging
+        $success_value = $success ? 1 : 0;
+        $stmt->execute([$key, $username, $ip, $success_value]);
+    }
+    
+    private function createLoginAttemptsTable() {
+        $query = "CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            identifier TEXT NOT NULL,
+            username TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            attempt_time DATETIME NOT NULL,
+            success INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )";
+        $this->conn->exec($query);
+    }
+    
+    // Create multiple test users
+    public function createTestUsers() {
+        $testUsers = [
+            ['username' => 'user1', 'email' => 'user1@test.com', 'password' => 'password123', 'full_name' => 'User Satu'],
+            ['username' => 'user2', 'email' => 'user2@test.com', 'password' => 'password123', 'full_name' => 'User Dua'],
+            ['username' => 'user3', 'email' => 'user3@test.com', 'password' => 'password123', 'full_name' => 'User Tiga'],
+            ['username' => 'testuser', 'email' => 'test@example.com', 'password' => 'test123', 'full_name' => 'Test User'],
+            ['username' => 'demo', 'email' => 'demo@weather.com', 'password' => 'demo123', 'full_name' => 'Demo User']
+        ];
+        
+        $results = [];
+        foreach ($testUsers as $userData) {
+            $result = $this->register($userData['username'], $userData['email'], $userData['password'], $userData['full_name']);
+            $results[] = $userData['username'] . ': ' . $result['message'];
+        }
+        
+        return $results;
+     }
+     
+     // Get user settings
     public function getSettings($user_id) {
         try {
             $query = "SELECT * FROM " . $this->settings_table . " WHERE user_id = :user_id";

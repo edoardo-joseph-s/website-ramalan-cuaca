@@ -12,6 +12,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$database = new Database();
+$pdo = $database->getConnection();
 $user = new User($pdo);
 $user_id = $_SESSION['user_id'];
 

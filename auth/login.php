@@ -6,7 +6,9 @@ $error_message = '';
 $success_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user = new User();
+    $database = new Database();
+    $pdo = $database->getConnection();
+    $user = new User($pdo);
     
     if (isset($_POST['login'])) {
         $username = sanitizeInput($_POST['username']);

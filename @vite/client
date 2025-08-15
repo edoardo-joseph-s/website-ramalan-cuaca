@@ -1,0 +1,13 @@
+// Dummy Vite client file to prevent 404 errors
+// This file is created to handle requests from browser extensions or development tools
+// that might be looking for Vite's hot module replacement client
+
+console.log('Vite client dummy file loaded - no HMR functionality');
+
+// Empty implementation to prevent errors
+if (typeof window !== 'undefined') {
+    window.__vite_is_modern_browser = true;
+}
+
+// Export empty object for module compatibility
+export default {};
