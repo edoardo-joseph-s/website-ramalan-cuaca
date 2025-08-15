@@ -137,7 +137,7 @@ Aplikasi sudah dilengkapi dengan akun default untuk testing:
    - Ketik nama lokasi di search box
    - Pilih dari dropdown autocomplete
    - Lihat informasi cuaca
-   - Maksimal 3 pencarian per 24 jam
+   - Maksimal 3 pencarian per 3 menir
 
 2. **Dengan Login**:
    - Login terlebih dahulu
@@ -170,8 +170,8 @@ $db_path = __DIR__ . '/../weather_app.db';
 
 ### Rate Limiting
 Pembatasan pencarian untuk guest user:
-- **Limit**: 3 pencarian per 24 jam
-- **Reset**: Otomatis setiap 24 jam
+- **Limit**: 3 pencarian per 3 menit
+- **Reset**: Otomatis setiap 3 menit
 - **Bypass**: Login untuk unlimited access
 
 ### API Configuration
