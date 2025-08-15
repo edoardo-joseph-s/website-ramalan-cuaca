@@ -1,56 +1,99 @@
 <?php
+session_start();
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../classes/User.php';
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Redirect if already logged in
+if (isset($_SESSION['user_id'])) {
+    header('Location: ../dashboard.php');
+    exit();
+}
+
 $error_message = '';
 $success_message = '';
+$debug_info = [];
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $database = new Database();
-    $pdo = $database->getConnection();
-    $user = new User($pdo);
+if ($_POST) {
+     try {
+         $database = new Database();
+         $db = $database->getConnection();
+         $user = new User($db);
+         
+         // Debug information
+         $debug_info[] = "Database connection: " . ($db ? 'Success' : 'Failed');
     
-    if (isset($_POST['login'])) {
-        $username = sanitizeInput($_POST['username']);
-        $password = $_POST['password'];
-        
-        if (empty($username) || empty($password)) {
-            $error_message = 'Username dan password harus diisi';
-        } else {
-            $result = $user->login($username, $password);
+        if (isset($_POST['login'])) {
+            $username = $_POST['username'] ?? '';
+            $password = $_POST['password'] ?? '';
             
-            if ($result['success']) {
-                redirectTo('../dashboard.php');
+            // Debug information
+            $debug_info[] = "Attempting login for username: " . htmlspecialchars($username);
+            $debug_info[] = "Password length: " . strlen($password);
+            
+            if (empty($username) || empty($password)) {
+                $error_message = 'Username dan password harus diisi';
             } else {
-                $error_message = $result['message'];
+                $result = $user->login($username, $password);
+                
+                $debug_info[] = "Login result: " . json_encode($result);
+                
+                if ($result['success']) {
+                    $success_message = $result['message'];
+                    $debug_info[] = "Session data set successfully";
+                    
+                    // Small delay to show success message
+                    sleep(1);
+                    
+                    // Redirect to dashboard after successful login
+                    header('Location: ../dashboard.php');
+                    exit();
+                } else {
+                    $error_message = $result['message'];
+                }
             }
         }
-    }
     
-    if (isset($_POST['register'])) {
-        $username = sanitizeInput($_POST['reg_username']);
-        $email = sanitizeInput($_POST['reg_email']);
-        $password = $_POST['reg_password'];
-        $confirm_password = $_POST['reg_confirm_password'];
-        $full_name = sanitizeInput($_POST['reg_full_name']);
-        
-        if (empty($username) || empty($email) || empty($password) || empty($full_name)) {
-            $error_message = 'Semua field harus diisi';
-        } elseif ($password !== $confirm_password) {
-            $error_message = 'Password dan konfirmasi password tidak sama';
-        } elseif (strlen($password) < 6) {
-            $error_message = 'Password minimal 6 karakter';
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error_message = 'Format email tidak valid';
-        } else {
-            $result = $user->register($username, $email, $password, $full_name);
+        if (isset($_POST['register'])) {
+            $username = $_POST['reg_username'] ?? '';
+            $email = $_POST['reg_email'] ?? '';
+            $password = $_POST['reg_password'] ?? '';
+            $confirm_password = $_POST['reg_confirm_password'] ?? '';
+            $full_name = $_POST['reg_full_name'] ?? '';
             
-            if ($result['success']) {
-                $success_message = $result['message'] . '. Silakan login.';
+            // Debug information
+            $debug_info[] = "Attempting registration for username: " . htmlspecialchars($username);
+            $debug_info[] = "Email: " . htmlspecialchars($email);
+        
+            if (empty($username) || empty($email) || empty($password) || empty($full_name)) {
+                $error_message = 'Semua field harus diisi';
+            } elseif ($password !== $confirm_password) {
+                $error_message = 'Password dan konfirmasi password tidak sama';
+            } elseif (strlen($password) < 6) {
+                $error_message = 'Password minimal 6 karakter';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error_message = 'Format email tidak valid';
             } else {
-                $error_message = $result['message'];
+                $result = $user->register($username, $email, $password, $full_name);
+                
+                $debug_info[] = "Registration result: " . json_encode($result);
+                
+                if ($result['success']) {
+                    $success_message = $result['message'] . '. Silakan login.';
+                } else {
+                    $error_message = $result['message'];
+                }
             }
         }
+        
+    } catch (Exception $e) {
+        $error_message = 'Terjadi kesalahan sistem: ' . $e->getMessage();
+        $debug_info[] = "Exception: " . $e->getMessage();
+        $debug_info[] = "File: " . $e->getFile() . " Line: " . $e->getLine();
     }
 }
 ?>
@@ -226,6 +269,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php if ($success_message): ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($debug_info) && ini_get('display_errors')): ?>
+                <div class="alert" style="background: rgba(52, 152, 219, 0.2); color: #fff; border: 1px solid rgba(52, 152, 219, 0.3);">
+                    <strong>Debug Info:</strong><br>
+                    <?php foreach ($debug_info as $info): ?>
+                        • <?php echo htmlspecialchars($info); ?><br>
+                    <?php endforeach; ?>
                 </div>
             <?php endif; ?>
             

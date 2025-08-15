@@ -59,48 +59,98 @@ class User {
         }
     }
     
-    // Login user with improved security
+    // Input sanitization method
+    private function sanitizeInput($input) {
+        return trim(htmlspecialchars(strip_tags($input), ENT_QUOTES, 'UTF-8'));
+    }
+    
+    // Start secure session with enhanced security
+    private function startSecureSession() {
+        // Regenerate session ID for security
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+        
+        // Set secure session parameters
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+        ini_set('session.use_strict_mode', 1);
+    }
+    
+    // Generate CSRF token
+    private function generateCSRFToken() {
+        return bin2hex(random_bytes(32));
+    }
+    
+    // Update last login time
+    private function updateLastLogin($user_id) {
+        try {
+            $query = "UPDATE " . $this->table_name . " SET last_login = datetime('now') WHERE id = ?";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$user_id]);
+        } catch (Exception $e) {
+            error_log("Update last login error: " . $e->getMessage());
+        }
+    }
+    
+    // Enhanced login function without password hashing
     public function login($username, $password) {
         try {
+            // Input validation and sanitization
+            $username = $this->sanitizeInput($username);
+            $password = trim($password);
+            
+            if (empty($username) || empty($password)) {
+                return ['success' => false, 'message' => 'Username dan password harus diisi'];
+            }
+            
             // Check for rate limiting
             if ($this->isRateLimited($username)) {
                 return ['success' => false, 'message' => 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'];
             }
             
-            // Validate input
-            if (empty(trim($username)) || empty($password)) {
-                return ['success' => false, 'message' => 'Username dan password harus diisi'];
-            }
-            
-            $query = "SELECT id, username, email, password, full_name, created_at FROM " . $this->table_name . " WHERE (username = :username OR email = :username) AND id > 0";
+            // Enhanced query with SQLite compatibility
+            $query = "SELECT id, username, email, password, full_name, created_at, last_login FROM " . $this->table_name . " WHERE (username = ? OR email = ?) AND id > 0 LIMIT 1";
             $stmt = $this->conn->prepare($query);
-            $trimmed_username = trim($username);
-            $stmt->bindParam(':username', $trimmed_username);
-            $stmt->execute();
+            $stmt->execute([$username, $username]);
             
-            if ($stmt->rowCount() == 1) {
-                $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Direct password comparison (no hashing)
+            if ($user && isset($user['password']) && $user['password'] === $password) {
+                // Start secure session
+                $this->startSecureSession();
                 
-                if ($user && isset($user['password']) && password_verify($password, $user['password'])) {
-                    // Regenerate session ID for security
-                    session_regenerate_id(true);
-                    
-                    // Set session variables
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['full_name'] = $user['full_name'];
-                    $_SESSION['email'] = $user['email'];
-                    $_SESSION['login_time'] = time();
-                    $_SESSION['last_activity'] = time();
-                    
-                    // Log successful login
-                    $this->logLoginAttempt($username, true, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-                    
-                    // Clear failed attempts
-                    $this->clearFailedAttempts($username);
-                    
-                    return ['success' => true, 'message' => 'Login berhasil', 'user' => $user];
-                }
+                // Set comprehensive session data
+                $_SESSION['user_id'] = (int)$user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['full_name'] = $user['full_name'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['login_time'] = time();
+                $_SESSION['last_activity'] = time();
+                $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+                $_SESSION['csrf_token'] = $this->generateCSRFToken();
+                
+                // Update last login time
+                $this->updateLastLogin($user['id']);
+                
+                // Log successful login
+                $this->logLoginAttempt($username, true, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+                
+                // Clear failed attempts
+                $this->clearFailedAttempts($username);
+                
+                return [
+                    'success' => true, 
+                    'message' => 'Login berhasil', 
+                    'user' => [
+                        'id' => $user['id'],
+                        'username' => $user['username'],
+                        'email' => $user['email'],
+                        'full_name' => $user['full_name']
+                    ]
+                ];
             }
             
             // Log failed login attempt
