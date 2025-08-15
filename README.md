@@ -3,6 +3,9 @@
 Aplikasi web untuk melihat prakiraan cuaca di seluruh wilayah Indonesia menggunakan data dari BMKG (Badan Meteorologi, Klimatologi, dan Geofisika).
 ![Tampilan Website Ramalan Cuaca](tampilan_web.png)
 
+**Usename: demo**
+**Password: demo123**
+
 ## 🌟 Fitur Utama
 
 ### 🔍 Pencarian Lokasi
