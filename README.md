@@ -97,7 +97,7 @@ ramalan-cuaca/
 
 1. **Clone atau Download Project**
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/edoardo-joseph-s/website-ramalan-cuaca.git
    cd ramalan-cuaca
    ```
 
